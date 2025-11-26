@@ -141,9 +141,37 @@ export default function Dashboard() {
           <CardHeader><CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Stock Status</CardTitle></CardHeader>
           <CardContent>
             {stockStatus.some(s => s.value > 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <RePieChart><Pie data={stockStatus} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">{stockStatus.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}</Pie><Tooltip /></RePieChart>
-              </ResponsiveContainer>
+              <div className="space-y-4">
+                <ResponsiveContainer width="100%" height={250}>
+                  <RePieChart>
+                    <Pie 
+                      data={stockStatus} 
+                      cx="50%" 
+                      cy="50%" 
+                      labelLine={false}
+                      outerRadius={80} 
+                      fill="#8884d8" 
+                      dataKey="value"
+                    >
+                      {stockStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-col gap-2">
+                  {stockStatus.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-medium">{item.value} items</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : <div className="h-[300px] flex items-center justify-center text-muted-foreground">No inventory data yet</div>}
           </CardContent>
         </Card>

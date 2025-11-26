@@ -361,13 +361,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "purchases_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "purchases_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -408,13 +401,6 @@ export type Database = {
           total_amount?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "sales_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
