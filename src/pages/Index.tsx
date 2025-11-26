@@ -1,8 +1,21 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Package2, TrendingUp, BarChart3, AlertCircle } from "lucide-react";
 
 const Index = () => {
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [showButton, setShowButton] = useState(false);
+
+  useEffect(() => {
+    const welcomeTimer = setTimeout(() => {
+      setShowWelcome(false);
+      setShowButton(true);
+    }, 2500);
+
+    return () => clearTimeout(welcomeTimer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <nav className="border-b border-border bg-card/50 backdrop-blur">
@@ -13,25 +26,36 @@ const Index = () => {
             </div>
             <span className="text-xl font-bold">InventoryPro</span>
           </div>
-          <Link to="/auth">
-            <Button>Get Started</Button>
-          </Link>
         </div>
       </nav>
 
       <main className="container mx-auto px-4 py-16">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
-            Smart Inventory Management & Demand Forecasting
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Streamline your inventory operations with AI-powered insights, real-time tracking, and predictive analytics
-          </p>
-          <Link to="/auth">
-            <Button size="lg" className="text-lg px-8">
-              Start Free Trial
-            </Button>
-          </Link>
+          {showWelcome ? (
+            <div className="animate-fade-in">
+              <h1 className="text-6xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
+                Welcome to Smart World
+              </h1>
+            </div>
+          ) : (
+            <div className="animate-fade-in space-y-8">
+              <h1 className="text-5xl font-bold mb-6 bg-gradient-primary bg-clip-text text-transparent">
+                Smart Inventory Management & Demand Forecasting
+              </h1>
+              <p className="text-xl text-muted-foreground">
+                Streamline your inventory operations with AI-powered insights, real-time tracking, and predictive analytics
+              </p>
+              {showButton && (
+                <div className="animate-scale-in">
+                  <Link to="/auth">
+                    <Button size="lg" className="text-lg px-8 shadow-elegant hover:shadow-hover transition-all">
+                      Get Started
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
@@ -81,11 +105,6 @@ const Index = () => {
           <p className="text-muted-foreground mb-6">
             Join businesses that trust InventoryPro for their inventory management
           </p>
-          <Link to="/auth">
-            <Button size="lg" variant="outline">
-              Sign Up Now
-            </Button>
-          </Link>
         </div>
       </main>
     </div>

@@ -39,6 +39,14 @@ export const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
     setLoading(true);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("You must be logged in to add products");
+        setLoading(false);
+        return;
+      }
+
       // Insert product
       const { data: product, error: productError } = await supabase
         .from("products")
@@ -51,6 +59,7 @@ export const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
           cost_price: parseFloat(formData.cost_price),
           reorder_level: parseInt(formData.reorder_level),
           reorder_quantity: parseInt(formData.reorder_quantity),
+          user_id: user.id,
         })
         .select()
         .single();
