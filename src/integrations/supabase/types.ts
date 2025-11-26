@@ -61,6 +61,7 @@ export type Database = {
           name: string
           phone: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           address?: string | null
@@ -70,6 +71,7 @@ export type Database = {
           name: string
           phone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           address?: string | null
@@ -79,6 +81,7 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -212,6 +215,7 @@ export type Database = {
           supplier_id: string | null
           unit_price: number
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           category: string
@@ -227,6 +231,7 @@ export type Database = {
           supplier_id?: string | null
           unit_price: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           category?: string
@@ -242,6 +247,7 @@ export type Database = {
           supplier_id?: string | null
           unit_price?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -473,6 +479,7 @@ export type Database = {
           name: string
           phone: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           address?: string | null
@@ -483,6 +490,7 @@ export type Database = {
           name: string
           phone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           address?: string | null
@@ -493,6 +501,7 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
