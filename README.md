@@ -190,6 +190,58 @@ inventorypro/
 └── package.json
 ```
 
+## Machine Learning Algorithms
+
+### Demand Forecasting System
+
+The demand forecasting feature uses an advanced **ensemble machine learning approach** similar to gradient boosting frameworks like XGBoost. Here's how it works:
+
+#### 1. **Gradient Boosting Ensemble**
+The system combines multiple weak learners using weighted voting to create a strong predictor:
+
+- **Exponential Smoothing (ETS)** - Weight: 30%
+  - Applies weighted averages with exponentially decreasing weights
+  - Alpha parameter (0.3) controls the smoothing factor
+  - Effective for time series with trends and noise reduction
+
+- **Linear Regression (OLS)** - Weight: 30%
+  - Fits a linear trend line using ordinary least squares
+  - Calculates slope and intercept to project future values
+  - Good for identifying long-term trends
+
+- **Moving Average (MA)** - Weight: 40%
+  - Uses 14-day rolling window for short-term stability
+  - Reduces impact of outliers and random fluctuations
+  - Highest weight due to proven stability
+
+#### 2. **Seasonal Decomposition (STL)**
+- Detects weekly patterns in sales data
+- Applies multiplicative seasonal factors
+- Accounts for cyclical variations in demand
+
+#### 3. **AI Neural Network Enhancement** (Optional)
+- Uses Google Gemini AI for complex pattern recognition
+- Analyzes anomalies, external factors, and non-linear relationships
+- Blends AI insights (30%) with statistical models (70%)
+
+#### 4. **Confidence Scoring System**
+The system calculates prediction confidence using:
+- **Coefficient of Variation (CV)**: Measures data consistency (40% weight)
+- **Prediction Reasonableness**: Deviation from recent averages (40% weight)
+- **Data Volume Score**: More historical data = higher confidence (20% weight)
+
+#### How It Works:
+1. Collects 90 days of historical sales data
+2. Applies time series preprocessing and gap filling
+3. Runs all algorithms in parallel (ensemble approach)
+4. Combines predictions using optimized weights
+5. Applies seasonal adjustments
+6. Optionally enhances with AI analysis
+7. Generates confidence scores
+8. Stores 30-day demand forecasts
+
+This approach provides robust, interpretable forecasts similar to gradient boosting frameworks while being adaptable and production-ready.
+
 ## Key Features Explained
 
 ### Authentication

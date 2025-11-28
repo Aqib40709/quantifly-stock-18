@@ -45,6 +45,7 @@ interface Product {
 
 export default function AddPurchaseDialog({ onPurchaseAdded }: PurchaseDialogProps) {
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -134,6 +135,8 @@ export default function AddPurchaseDialog({ onPurchaseAdded }: PurchaseDialogPro
   };
 
   const handleSubmit = async () => {
+    if (submitting) return; // Prevent duplicate submissions
+    
     if (!selectedSupplier) {
       toast({
         title: "Error",
@@ -162,6 +165,7 @@ export default function AddPurchaseDialog({ onPurchaseAdded }: PurchaseDialogPro
       return;
     }
 
+    setSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -236,6 +240,8 @@ export default function AddPurchaseDialog({ onPurchaseAdded }: PurchaseDialogPro
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -355,10 +361,12 @@ export default function AddPurchaseDialog({ onPurchaseAdded }: PurchaseDialogPro
           )}
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>Create Purchase Order</Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Creating..." : "Create Purchase Order"}
+            </Button>
           </div>
         </div>
       </DialogContent>
