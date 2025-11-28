@@ -64,7 +64,14 @@ export const AddProductDialog = ({ onProductAdded }: AddProductDialogProps) => {
         .select()
         .single();
 
-      if (productError) throw productError;
+      if (productError) {
+        if (productError.code === '23505' && productError.message.includes('products_sku_key')) {
+          toast.error(`SKU "${formData.sku}" already exists. Please use a unique SKU.`);
+          setLoading(false);
+          return;
+        }
+        throw productError;
+      }
 
       // Create initial inventory entry
       const { error: inventoryError } = await supabase
