@@ -62,7 +62,11 @@ function exponentialSmoothing(data: number[], alpha = 0.3): number {
   
   // Add trend component
   const trend = (data[data.length - 1] - data[0]) / data.length;
-  return Math.max(0, Math.round(smoothed + trend));
+  const result = smoothed + trend;
+  
+  // Validate result
+  if (isNaN(result) || !isFinite(result)) return 0;
+  return Math.max(0, Math.round(result));
 }
 
 // Linear Regression (Ordinary Least Squares)
@@ -79,9 +83,14 @@ function linearRegression(data: number[]): { slope: number; intercept: number; p
     sumX2 += i * i;
   }
   
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const denominator = (n * sumX2 - sumX * sumX);
+  const slope = denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0;
   const intercept = (sumY - slope * sumX) / n;
-  const prediction = Math.max(0, Math.round(slope * n + intercept));
+  const rawPrediction = slope * n + intercept;
+  
+  // Validate result
+  if (isNaN(rawPrediction) || !isFinite(rawPrediction)) return { slope: 0, intercept: 0, prediction: 0 };
+  const prediction = Math.max(0, Math.round(rawPrediction));
   
   return { slope, intercept, prediction };
 }
@@ -160,6 +169,11 @@ function gradientBoostingForecast(sales: any[]): { prediction: number; confidenc
     dailyQuantities.push(salesMap.get(dateStr) || 0);
   }
   
+  // If no meaningful data, return early
+  if (dailyQuantities.length === 0 || dailyQuantities.every(q => q === 0)) {
+    return { prediction: 0, confidence: 0.3 };
+  }
+  
   // Base learners (weak predictors)
   const esPredict = exponentialSmoothing(dailyQuantities);
   const lrResult = linearRegression(dailyQuantities);
@@ -167,7 +181,9 @@ function gradientBoostingForecast(sales: any[]): { prediction: number; confidenc
   
   // Moving average learner
   const recentData = dailyQuantities.slice(-14);
-  const movingAvg = recentData.reduce((sum, val) => sum + val, 0) / recentData.length;
+  const movingAvg = recentData.length > 0 
+    ? recentData.reduce((sum, val) => sum + val, 0) / recentData.length 
+    : 0;
   
   // Gradient boosting: weighted ensemble of weak learners
   // Weights optimized based on historical accuracy (similar to XGBoost)
@@ -177,12 +193,22 @@ function gradientBoostingForecast(sales: any[]): { prediction: number; confidenc
     movingAvg * 0.40             // Moving average weight (highest due to stability)
   ) * seasonalityFactor;         // Apply seasonal adjustment
   
+  // Validate prediction
+  if (isNaN(prediction) || !isFinite(prediction) || prediction < 0) {
+    prediction = 0;
+  }
+  
   // Scale to 30-day forecast horizon
   prediction = Math.round(prediction * 30);
   
   const confidence = calculateAdvancedConfidence(dailyQuantities, prediction);
   
-  return { prediction: Math.max(0, prediction), confidence };
+  // Validate confidence
+  const finalConfidence = isNaN(confidence) || !isFinite(confidence) 
+    ? 0.3 
+    : Math.max(0.1, Math.min(0.95, confidence));
+  
+  return { prediction: Math.max(0, prediction), confidence: finalConfidence };
 }
 
 serve(async (req) => {
@@ -301,12 +327,17 @@ Analyze trends, seasonality, anomalies. Return JSON only: {"prediction": number,
         }
       }
 
-      forecasts.push({
-        product_id: productId,
-        predicted_demand: finalPrediction,
-        confidence_score: finalConfidence,
-        forecast_date: thirtyDaysFromNow.toISOString(),
-      });
+      // Only add valid forecasts
+      if (finalPrediction > 0 && !isNaN(finalPrediction) && isFinite(finalPrediction)) {
+        forecasts.push({
+          product_id: productId,
+          predicted_demand: finalPrediction,
+          confidence_score: finalConfidence,
+          forecast_date: thirtyDaysFromNow.toISOString(),
+        });
+      } else {
+        console.log(`  Skipping invalid forecast for ${productData.name}`);
+      }
     }
 
     // Store forecasts
