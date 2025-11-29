@@ -117,7 +117,7 @@ function detectSeasonality(sales: any[]): number {
 
 // Advanced confidence scoring using statistical metrics
 function calculateAdvancedConfidence(data: number[], prediction: number): number {
-  if (data.length === 0) return 0.5;
+  if (data.length === 0) return 0.3;
   
   const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
   const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length;
@@ -125,20 +125,38 @@ function calculateAdvancedConfidence(data: number[], prediction: number): number
   
   // Coefficient of variation (lower is better for stability)
   const cv = mean > 0 ? stdDev / mean : 1;
-  const consistencyScore = Math.max(0, 1 - cv);
+  const consistencyScore = Math.max(0, 1 - Math.min(cv, 1));
   
-  // Prediction deviation from recent trends
-  const recentAvg = data.slice(-7).reduce((sum, val) => sum + val, 0) / Math.min(7, data.length);
-  const predictionDeviation = Math.abs(prediction - recentAvg) / (recentAvg || 1);
-  const reasonablenessScore = Math.max(0, 1 - predictionDeviation / 2);
+  // Prediction deviation from recent trends (use last 14 days for better accuracy)
+  const recentWindow = Math.min(14, data.length);
+  const recentData = data.slice(-recentWindow);
+  const recentAvg = recentData.reduce((sum, val) => sum + val, 0) / recentData.length;
   
-  // Data volume score (30+ days optimal)
-  const volumeScore = Math.min(1, data.length / 30);
+  // Scale prediction back to daily for comparison
+  const dailyPrediction = prediction / 30;
+  const predictionDeviation = recentAvg > 0 
+    ? Math.abs(dailyPrediction - recentAvg) / recentAvg 
+    : 1;
+  const reasonablenessScore = Math.max(0, 1 - Math.min(predictionDeviation, 1));
   
-  // Weighted ensemble confidence
-  const confidence = (consistencyScore * 0.4 + reasonablenessScore * 0.4 + volumeScore * 0.2);
+  // Data volume score (more data = higher confidence)
+  // 7 days = 0.5, 30+ days = 1.0
+  const volumeScore = Math.min(1, Math.max(0.3, data.length / 30));
   
-  return Math.max(0.3, Math.min(0.95, confidence));
+  // Data freshness score (recent data is more reliable)
+  const nonZeroCount = data.filter(d => d > 0).length;
+  const dataQualityScore = Math.min(1, nonZeroCount / Math.max(7, data.length * 0.5));
+  
+  // Weighted ensemble confidence with improved sensitivity
+  const confidence = (
+    consistencyScore * 0.30 + 
+    reasonablenessScore * 0.30 + 
+    volumeScore * 0.25 +
+    dataQualityScore * 0.15
+  );
+  
+  // Ensure valid range with better distribution
+  return Math.max(0.35, Math.min(0.95, confidence));
 }
 
 // Gradient Boosting Ensemble (XGBoost-inspired)
@@ -248,13 +266,20 @@ serve(async (req) => {
       );
     }
 
-    // Group by product
+    // Group by product (exclude products without valid names)
     const productSales: any = {};
     salesData.forEach((item: any) => {
       const productId = item.product_id;
+      const productName = item.products?.name;
+      
+      // Skip products without valid names
+      if (!productName || productName.trim() === '') {
+        return;
+      }
+      
       if (!productSales[productId]) {
         productSales[productId] = {
-          name: item.products?.name || 'Unknown',
+          name: productName,
           reorder_level: item.products?.reorder_level || 10,
           sales: [],
         };
@@ -274,6 +299,12 @@ serve(async (req) => {
 
     for (const [productId, data] of Object.entries(productSales)) {
       const productData = data as any;
+      
+      // Skip products with insufficient sales history
+      if (productData.sales.length < 3) {
+        console.log(`Skipping ${productData.name}: insufficient sales data (${productData.sales.length} records)`);
+        continue;
+      }
       
       // Apply gradient boosting ensemble
       const { prediction, confidence } = gradientBoostingForecast(productData.sales);
