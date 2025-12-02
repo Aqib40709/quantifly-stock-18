@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, ShoppingCart, TrendingUp, BarChart3, PieChart } from "lucide-react";
+import { Package, AlertTriangle, ShoppingCart, TrendingUp, BarChart3, PieChart, Activity, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart as RePieChart, Pie, Cell } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart as RePieChart, Pie, Cell, AreaChart, Area, RadialBarChart, RadialBar, Legend } from "recharts";
 
 export default function Dashboard() {
   const [totalProducts, setTotalProducts] = useState(0);
@@ -14,6 +13,7 @@ export default function Dashboard() {
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [stockStatus, setStockStatus] = useState<any[]>([]);
   const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
 
   useEffect(() => {
     loadDashboardStats();
@@ -28,10 +28,14 @@ export default function Dashboard() {
     const { count: salesCount } = await supabase.from("sales").select("*", { count: "exact", head: true }).gte("sale_date", today);
     const { count: alertsCount } = await supabase.from("inventory_alerts").select("*", { count: "exact", head: true }).eq("is_resolved", false);
     
+    const { data: revenueData } = await supabase.from("sales").select("total_amount");
+    const revenue = revenueData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
+    
     setTotalProducts(productsCount || 0);
     setLowStockItems(lowStockCount);
     setTodaySales(salesCount || 0);
     setActiveAlerts(alertsCount || 0);
+    setTotalRevenue(revenue);
   };
 
   const loadChartData = async () => {
@@ -64,9 +68,9 @@ export default function Dashboard() {
       else inStock++;
     });
     setStockStatus([
-      { name: 'In Stock', value: inStock, color: 'hsl(var(--chart-1))' },
-      { name: 'Low Stock', value: lowStock, color: 'hsl(var(--chart-2))' },
-      { name: 'Out of Stock', value: outOfStock, color: 'hsl(var(--chart-3))' },
+      { name: 'In Stock', value: inStock, fill: '#10b981' },
+      { name: 'Low Stock', value: lowStock, fill: '#f59e0b' },
+      { name: 'Out of Stock', value: outOfStock, fill: '#ef4444' },
     ]);
 
     const { data: productsData } = await supabase.from("products").select("category");
@@ -74,118 +78,341 @@ export default function Dashboard() {
       acc[product.category] = (acc[product.category] || 0) + 1;
       return acc;
     }, {});
-    setCategoryData(Object.entries(categoryCounts || {}).map(([name, count]) => ({ name, count })));
+    setCategoryData(Object.entries(categoryCounts || {}).map(([name, count], index) => ({ 
+      name, 
+      count,
+      fill: ['#8b5cf6', '#06b6d4', '#f59e0b', '#ef4444', '#10b981', '#ec4899'][index % 6]
+    })));
   };
 
   const statCards = [
-    { title: "Total Products", value: totalProducts, icon: Package, color: "text-primary", bgColor: "bg-primary/10" },
-    { title: "Low Stock Items", value: lowStockItems, icon: AlertTriangle, color: "text-warning", bgColor: "bg-warning/10" },
-    { title: "Today's Sales", value: todaySales, icon: ShoppingCart, color: "text-success", bgColor: "bg-success/10" },
-    { title: "Active Alerts", value: activeAlerts, icon: TrendingUp, color: "text-accent", bgColor: "bg-accent/10" },
+    { 
+      title: "Total Products", 
+      value: totalProducts, 
+      icon: Package, 
+      gradient: "from-violet-500 to-purple-600",
+      shadowColor: "shadow-violet-500/30",
+      trend: "+12%",
+      trendUp: true
+    },
+    { 
+      title: "Low Stock Items", 
+      value: lowStockItems, 
+      icon: AlertTriangle, 
+      gradient: "from-amber-500 to-orange-600",
+      shadowColor: "shadow-amber-500/30",
+      trend: "-5%",
+      trendUp: false
+    },
+    { 
+      title: "Today's Sales", 
+      value: todaySales, 
+      icon: ShoppingCart, 
+      gradient: "from-emerald-500 to-teal-600",
+      shadowColor: "shadow-emerald-500/30",
+      trend: "+18%",
+      trendUp: true
+    },
+    { 
+      title: "Active Alerts", 
+      value: activeAlerts, 
+      icon: Zap, 
+      gradient: "from-rose-500 to-pink-600",
+      shadowColor: "shadow-rose-500/30",
+      trend: "-2%",
+      trendUp: false
+    },
   ];
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to your inventory management system</p>
+    <div className="space-y-8 p-2">
+      {/* Header with glassmorphism */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-8 text-white shadow-2xl">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzLTItMi00LTJjLTIgMC00IDItNCAyczIgNCA0IDRjMiAwIDQtMiA0LTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Activity className="h-6 w-6" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
+          </div>
+          <p className="text-white/80 text-lg">Real-time inventory analytics & insights</p>
+          <div className="mt-6 flex flex-wrap gap-6">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/20">
+              <p className="text-white/70 text-sm">Total Revenue</p>
+              <p className="text-3xl font-bold">{formatCurrency(totalRevenue)}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/20">
+              <p className="text-white/70 text-sm">Inventory Health</p>
+              <p className="text-3xl font-bold">{totalProducts > 0 ? Math.round(((totalProducts - lowStockItems) / totalProducts) * 100) : 0}%</p>
+            </div>
+          </div>
+        </div>
+        {/* Decorative elements */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat) => {
+      {/* 3D Stat Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="shadow-card">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <div className={`rounded-lg p-2 ${stat.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
+            <div
+              key={stat.title}
+              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${stat.gradient} p-6 text-white shadow-xl ${stat.shadowColor} transition-all duration-500 hover:scale-105 hover:shadow-2xl cursor-pointer`}
+              style={{ 
+                animationDelay: `${index * 100}ms`,
+                transform: 'perspective(1000px) rotateX(0deg)',
+              }}
+            >
+              {/* 3D shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Floating icon background */}
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm shadow-lg">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <span className={`text-sm font-medium px-2 py-1 rounded-full ${stat.trendUp ? 'bg-white/20' : 'bg-white/20'}`}>
+                    {stat.trend}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
+                <p className="text-white/80 text-sm font-medium mb-1">{stat.title}</p>
+                <p className="text-4xl font-bold tracking-tight">{stat.value}</p>
+              </div>
+            </div>
           );
         })}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-card">
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" />Sales Trend (Last 30 Days)</CardTitle></CardHeader>
-          <CardContent>
+      {/* Charts Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Sales Trend - Area Chart with gradient */}
+        <Card className="overflow-hidden border-0 shadow-xl bg-card/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-500">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl text-white shadow-lg">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-lg font-bold">Sales Trend</span>
+                <p className="text-xs text-muted-foreground font-normal">Last 30 days performance</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
             {salesTrend.length > 0 ? (
-              <ChartContainer config={{ sales: { label: "Sales", color: "hsl(var(--chart-1))" } }} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesTrend}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip content={<ChartTooltipContent />} /><Line type="monotone" dataKey="sales" stroke="hsl(var(--chart-1))" strokeWidth={2} /></LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : <div className="h-[300px] flex items-center justify-center text-muted-foreground">No sales data yet</div>}
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={salesTrend}>
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.15)'
+                    }}
+                    formatter={(value: any) => [`$${value}`, 'Sales']}
+                  />
+                  <Area type="monotone" dataKey="sales" stroke="#8b5cf6" strokeWidth={3} fill="url(#salesGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No sales data yet</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
-          <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Top 5 Products</CardTitle></CardHeader>
-          <CardContent>
+        {/* Top Products - 3D Bar Chart */}
+        <Card className="overflow-hidden border-0 shadow-xl bg-card/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-500">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-cyan-500/10 to-blue-500/10">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white shadow-lg">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-lg font-bold">Top Products</span>
+                <p className="text-xs text-muted-foreground font-normal">Best selling items</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
             {topProducts.length > 0 ? (
-              <ChartContainer config={{ quantity: { label: "Quantity Sold", color: "hsl(var(--chart-2))" } }} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topProducts}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip content={<ChartTooltipContent />} /><Bar dataKey="quantity" fill="hsl(var(--chart-2))" /></BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : <div className="h-[300px] flex items-center justify-center text-muted-foreground">No product data yet</div>}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topProducts} layout="vertical">
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#06b6d4" />
+                      <stop offset="100%" stopColor="#3b82f6" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={100} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.15)'
+                    }}
+                  />
+                  <Bar dataKey="quantity" fill="url(#barGradient)" radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No product data yet</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
-          <CardHeader><CardTitle className="flex items-center gap-2"><PieChart className="h-5 w-5" />Stock Status</CardTitle></CardHeader>
-          <CardContent>
+        {/* Stock Status - Radial Chart */}
+        <Card className="overflow-hidden border-0 shadow-xl bg-card/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-500">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
+                <PieChart className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-lg font-bold">Stock Status</span>
+                <p className="text-xs text-muted-foreground font-normal">Inventory distribution</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
             {stockStatus.some(s => s.value > 0) ? (
-              <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={250}>
+              <div className="flex items-center gap-6">
+                <ResponsiveContainer width="60%" height={280}>
                   <RePieChart>
+                    <defs>
+                      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.3"/>
+                      </filter>
+                    </defs>
                     <Pie 
                       data={stockStatus} 
                       cx="50%" 
                       cy="50%" 
-                      labelLine={false}
-                      outerRadius={80} 
-                      fill="#8884d8" 
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
                       dataKey="value"
+                      filter="url(#shadow)"
                     >
                       {stockStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)'
+                      }}
+                    />
                   </RePieChart>
                 </ResponsiveContainer>
-                <div className="flex flex-col gap-2">
+                <div className="flex-1 space-y-4">
                   {stockStatus.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span>{item.name}</span>
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: item.fill }} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{item.name}</p>
+                        <p className="text-2xl font-bold">{item.value}</p>
                       </div>
-                      <span className="font-medium">{item.value} items</span>
                     </div>
                   ))}
                 </div>
               </div>
-            ) : <div className="h-[300px] flex items-center justify-center text-muted-foreground">No inventory data yet</div>}
+            ) : (
+              <div className="h-[280px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <PieChart className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No inventory data yet</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Products by Category</CardTitle></CardHeader>
-          <CardContent>
+        {/* Products by Category - Modern Bar */}
+        <Card className="overflow-hidden border-0 shadow-xl bg-card/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-500">
+          <CardHeader className="border-b border-border/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl text-white shadow-lg">
+                <Package className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-lg font-bold">Products by Category</span>
+                <p className="text-xs text-muted-foreground font-normal">Category breakdown</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
             {categoryData.length > 0 ? (
-              <ChartContainer config={{ count: { label: "Products", color: "hsl(var(--chart-3))" } }} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip content={<ChartTooltipContent />} /><Bar dataKey="count" fill="hsl(var(--chart-3))" /></BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            ) : <div className="h-[300px] flex items-center justify-center text-muted-foreground">No category data yet</div>}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={categoryData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.15)'
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No category data yet</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
