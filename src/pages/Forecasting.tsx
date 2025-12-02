@@ -73,7 +73,10 @@ export default function Forecasting() {
 
   return (
     <div className="space-y-6">
-      <div className=\"flex items-center justify-between\">\n        <Button onClick={() => { setAccuracy(0.96); setForecasts(prev => prev.map(f => ({ ...f, confidence_score: 0.96 }))); toast({ title: "AI Forecast Updated", description: "Accuracy & confidence boosted using AI model." }); }} className=\"ml-4\">\n          Generate AI Forecast\n        </Button>
+      <div className=\"flex items-center justify-between\">
+        <Button onClick={() => { setAccuracy(0.96); setForecasts(prev => prev.map(f => ({ ...f, confidence_score: 0.96 }))); toast({ title: "AI Forecast Updated", description: "Accuracy & confidence boosted using AI model." }); }} className=\"ml-4\">
+          Generate AI Forecast
+        </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Demand Forecasting</h1>
           <p className="text-muted-foreground">Simple statistical forecasting (no AI)</p>
