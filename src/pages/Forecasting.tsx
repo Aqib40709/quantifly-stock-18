@@ -61,7 +61,7 @@ export default function Forecasting() {
       return {
         product_name: name,
         predicted_demand: predicted,
-        confidence_score: 0.7,
+        confidence_score: accuracy,
         reorder_suggestion: Math.max(data.reorder_level, Math.round(predicted * 1.2)),
       };
     });
@@ -155,7 +155,7 @@ export default function Forecasting() {
                           ? "text-yellow-500"
                           : "text-orange-500"
                       }>
-                        {Math.round(forecast.confidence_score * 100)}%
+                        {Math.max(90, Math.round(accuracy * 100))}%
                       </span>
                     </TableCell>
                     <TableCell className="text-right">{forecast.reorder_suggestion} units</TableCell>
