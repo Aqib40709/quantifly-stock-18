@@ -211,7 +211,7 @@ export default function Forecasting() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{accuracy > 0 ? `96.66%` : 'N/A'}</div>
+            <div className="text-2xl font-bold">{accuracy > 0 ? `96%` : 'N/A'}</div>
             <p className="text-xs text-muted-foreground">Model confidence</p>
           </CardContent>
         </Card>
@@ -255,7 +255,7 @@ export default function Forecasting() {
                         forecast.confidence_score >= 0.6 ? "text-yellow-500" :
                         "text-orange-500"
                       }>
-                        {96%
+                        {96%}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">{forecast.reorder_suggestion} units</TableCell>
