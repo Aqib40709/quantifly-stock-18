@@ -48,7 +48,7 @@ export default function Forecasting() {
 
     if (forecastData && forecastData.length > 0) {
       const grouped = forecastData.reduce((acc: any, item: any) => {
-        const productName = item.products?.name || 'Unknown';
+        const productName = item.products?.name || "Unknown";
         if (!acc[productName]) {
           acc[productName] = {
             product_name: productName,
@@ -161,9 +161,8 @@ export default function Forecasting() {
     }
   };
 
-  // Bound percentages to 90–100%
-  const boundedPercent = (value: number) =>
-    Math.min(100, Math.max(90, Math.round(value * 100)));
+  // Convert 0–1 → 90–100
+  const to90to100 = (value: number) => Math.round(90 + value * 10);
 
   return (
     <div className="space-y-6">
@@ -217,7 +216,7 @@ export default function Forecasting() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {accuracy > 0 ? `${boundedPercent(accuracy)}%` : "N/A"}
+              {accuracy > 0 ? `${to90to100(accuracy)}%` : "N/A"}
             </div>
             <p className="text-xs text-muted-foreground">Model confidence</p>
           </CardContent>
@@ -257,7 +256,7 @@ export default function Forecasting() {
                     <TableCell className="font-medium">{forecast.product_name}</TableCell>
                     <TableCell className="text-right">{forecast.predicted_demand} units</TableCell>
 
-                    {/* Confidence with 90–100% bounding */}
+                    {/* Confidence 90–100 */}
                     <TableCell className="text-right">
                       <span
                         className={
@@ -268,7 +267,7 @@ export default function Forecasting() {
                             : "text-orange-500"
                         }
                       >
-                        {boundedPercent(forecast.confidence_score)}%
+                        {to90to100(forecast.confidence_score)}%
                       </span>
                     </TableCell>
 
